@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import SidebarNav from "@/components/SidebarNav";
 
 export const metadata: Metadata = {
   title: "RestaurantGuard — AI Compliance Copilot",
@@ -19,26 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </h1>
               <p className="text-emerald-300 text-xs mt-1">AI Compliance Copilot</p>
             </div>
-            <nav className="flex-1 p-4 space-y-1">
-              <a href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
-                <span>📊</span> Dashboard
-              </a>
-              <a href="/restaurants" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
-                <span>🏪</span> Restaurants
-              </a>
-              <a href="/inspections" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
-                <span>📋</span> Inspections
-              </a>
-              <a href="/checklists" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
-                <span>✅</span> Checklists
-              </a>
-              <a href="/corrective-actions" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
-                <span>⚠️</span> Corrective Actions
-              </a>
-              <a href="/alerts" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
-                <span>🔔</span> Alerts
-              </a>
-            </nav>
+            <SidebarNav />
             <div className="p-4 border-t border-emerald-800 text-xs text-emerald-400">
               v1.0 — Factory Build
             </div>
