@@ -22,6 +22,23 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.patch('/read-all', async (req, res) => {
+  try {
+    const { restaurant_id } = req.query;
+    let query = 'UPDATE alerts SET is_read = TRUE WHERE is_read = FALSE';
+    const params: any[] = [];
+    if (restaurant_id) {
+      query += ` AND restaurant_id = $1`;
+      params.push(restaurant_id);
+    }
+    query += ' RETURNING id';
+    const result = await pool.query(query, params);
+    res.json({ updated: result.rowCount });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to mark all alerts read' });
+  }
+});
+
 router.patch('/:id/read', async (req, res) => {
   try {
     const result = await pool.query(
