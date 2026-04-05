@@ -57,6 +57,43 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Complete or update an inspection (mark as Completed with score + notes)
+router.patch('/:id', async (req, res) => {
+  try {
+    const { status, score, notes } = req.body;
+    const fields: string[] = [];
+    const params: any[] = [];
+
+    if (status !== undefined) { fields.push(`status = $${params.length + 1}`); params.push(status); }
+    if (score !== undefined)  { fields.push(`score = $${params.length + 1}`); params.push(score); }
+    if (notes !== undefined)  { fields.push(`notes = $${params.length + 1}`); params.push(notes); }
+
+    if (status === 'Completed') {
+      fields.push(`completed_date = NOW()`);
+    }
+
+    if (fields.length === 0) return res.status(400).json({ error: 'No fields to update' });
+
+    params.push(req.params.id);
+    const result = await pool.query(
+      `UPDATE inspections SET ${fields.join(', ')} WHERE id = $${params.length} RETURNING *`,
+      params
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+
+    // Fetch with restaurant name
+    const full = await pool.query(
+      `SELECT i.*, r.name as restaurant_name FROM inspections i
+       JOIN restaurants r ON i.restaurant_id = r.id WHERE i.id = $1`,
+      [req.params.id]
+    );
+    res.json(full.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update inspection' });
+  }
+});
+
 router.post('/:id/responses', async (req, res) => {
   try {
     const { responses } = req.body;

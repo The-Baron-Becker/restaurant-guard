@@ -9,6 +9,8 @@ const EMPTY_FORM = {
   scheduled_date: "",
 };
 
+const EMPTY_COMPLETE = { score: "", notes: "" };
+
 export default function InspectionsPage() {
   const [inspections, setInspections] = useState<any[]>([]);
   const [restaurants, setRestaurants] = useState<any[]>([]);
@@ -17,6 +19,12 @@ export default function InspectionsPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Complete inspection modal
+  const [completeTarget, setCompleteTarget] = useState<any | null>(null);
+  const [completeForm, setCompleteForm] = useState(EMPTY_COMPLETE);
+  const [completing, setCompleting] = useState(false);
+  const [completeError, setCompleteError] = useState<string | null>(null);
 
   // Filter state
   const [search, setSearch] = useState("");
@@ -54,7 +62,6 @@ export default function InspectionsPage() {
       });
       if (!res.ok) throw new Error("Failed to save");
       const created = await res.json();
-      // Attach restaurant name for display
       const rest = restaurants.find((r) => r.id === created.restaurant_id);
       setInspections((prev) => [{ ...created, restaurant_name: rest?.name }, ...prev]);
       setShowModal(false);
@@ -63,6 +70,33 @@ export default function InspectionsPage() {
       setFormError("Something went wrong. Please try again.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleComplete = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const scoreNum = parseInt(completeForm.score);
+    if (!completeForm.score || isNaN(scoreNum) || scoreNum < 0 || scoreNum > 100) {
+      setCompleteError("Score must be a number between 0 and 100.");
+      return;
+    }
+    setCompleting(true);
+    setCompleteError(null);
+    try {
+      const res = await fetch(apiUrl(`/api/inspections/${completeTarget.id}`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Completed", score: scoreNum, notes: completeForm.notes || null }),
+      });
+      if (!res.ok) throw new Error("Failed to complete");
+      const updated = await res.json();
+      setInspections((prev) => prev.map((i) => i.id === updated.id ? updated : i));
+      setCompleteTarget(null);
+      setCompleteForm(EMPTY_COMPLETE);
+    } catch {
+      setCompleteError("Something went wrong. Please try again.");
+    } finally {
+      setCompleting(false);
     }
   };
 
@@ -81,7 +115,6 @@ export default function InspectionsPage() {
     }
   };
 
-  // Apply filters
   const filtered = inspections.filter((insp) => {
     const matchSearch =
       !search ||
@@ -154,12 +187,13 @@ export default function InspectionsPage() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Inspector</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-400">
+                <td colSpan={7} className="px-6 py-10 text-center text-sm text-gray-400">
                   No inspections match your filters.
                 </td>
               </tr>
@@ -186,6 +220,16 @@ export default function InspectionsPage() {
                       <span className="text-gray-300">—</span>
                     )}
                   </td>
+                  <td className="px-6 py-4">
+                    {insp.status === "Scheduled" && (
+                      <button
+                        onClick={() => { setCompleteTarget(insp); setCompleteForm(EMPTY_COMPLETE); setCompleteError(null); }}
+                        className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition"
+                      >
+                        Complete
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))
             )}
@@ -193,40 +237,78 @@ export default function InspectionsPage() {
         </table>
       </div>
 
+      {/* Complete Inspection Modal */}
+      {completeTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Complete Inspection</h2>
+                <p className="text-xs text-gray-500 mt-0.5">{completeTarget.restaurant_name} — {completeTarget.inspection_type}</p>
+              </div>
+              <button onClick={() => setCompleteTarget(null)} className="text-gray-400 hover:text-gray-700 text-xl font-bold transition">✕</button>
+            </div>
+            <form onSubmit={handleComplete} className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Inspection Score (0–100) *</label>
+                <input
+                  type="number" min={0} max={100}
+                  value={completeForm.score}
+                  onChange={(e) => setCompleteForm({ ...completeForm, score: e.target.value })}
+                  placeholder="e.g. 92"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                />
+                <p className="text-xs text-gray-400 mt-1">90–100: Pass ✅ &nbsp; 80–89: Conditional ⚠️ &nbsp; Below 80: Fail ❌</p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Inspector Notes</label>
+                <textarea
+                  rows={3}
+                  value={completeForm.notes}
+                  onChange={(e) => setCompleteForm({ ...completeForm, notes: e.target.value })}
+                  placeholder="Summary of findings, violations, recommendations…"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none"
+                />
+              </div>
+              {completeError && (
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{completeError}</p>
+              )}
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => setCompleteTarget(null)}
+                  className="flex-1 border border-gray-200 text-gray-600 text-sm font-medium py-2 rounded-lg hover:bg-gray-50 transition">
+                  Cancel
+                </button>
+                <button type="submit" disabled={completing}
+                  className="flex-1 bg-emerald-600 text-white text-sm font-semibold py-2 rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition">
+                  {completing ? "Saving…" : "Mark Complete"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Schedule Inspection Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <h2 className="text-lg font-bold text-gray-900">Schedule Inspection</h2>
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-700 text-xl font-bold transition"
-              >
-                ✕
-              </button>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-700 text-xl font-bold transition">✕</button>
             </div>
             <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Restaurant *</label>
-                <select
-                  value={form.restaurant_id}
-                  onChange={(e) => setForm({ ...form, restaurant_id: e.target.value })}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                >
+                <select value={form.restaurant_id} onChange={(e) => setForm({ ...form, restaurant_id: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
                   <option value="">Select a restaurant…</option>
-                  {restaurants.map((r: any) => (
-                    <option key={r.id} value={r.id}>{r.name}</option>
-                  ))}
+                  {restaurants.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Inspection Type</label>
-                <select
-                  value={form.inspection_type}
-                  onChange={(e) => setForm({ ...form, inspection_type: e.target.value })}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                >
+                <select value={form.inspection_type} onChange={(e) => setForm({ ...form, inspection_type: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
                   <option>Routine</option>
                   <option>Follow-Up</option>
                   <option>Complaint</option>
@@ -236,43 +318,23 @@ export default function InspectionsPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Scheduled Date *</label>
-                <input
-                  type="date"
-                  value={form.scheduled_date}
-                  onChange={(e) => setForm({ ...form, scheduled_date: e.target.value })}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                />
+                <input type="date" value={form.scheduled_date} onChange={(e) => setForm({ ...form, scheduled_date: e.target.value })}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Inspector Name</label>
-                <input
-                  type="text"
-                  value={form.inspector_name}
-                  onChange={(e) => setForm({ ...form, inspector_name: e.target.value })}
+                <input type="text" value={form.inspector_name} onChange={(e) => setForm({ ...form, inspector_name: e.target.value })}
                   placeholder="e.g. Jane Smith"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                />
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
               </div>
-
               {formError && (
-                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                  {formError}
-                </p>
+                <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{formError}</p>
               )}
-
               <div className="flex gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 border border-gray-200 text-gray-600 text-sm font-medium py-2 rounded-lg hover:bg-gray-50 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 bg-emerald-600 text-white text-sm font-semibold py-2 rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                >
+                <button type="button" onClick={() => setShowModal(false)}
+                  className="flex-1 border border-gray-200 text-gray-600 text-sm font-medium py-2 rounded-lg hover:bg-gray-50 transition">Cancel</button>
+                <button type="submit" disabled={saving}
+                  className="flex-1 bg-emerald-600 text-white text-sm font-semibold py-2 rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition">
                   {saving ? "Scheduling…" : "Schedule"}
                 </button>
               </div>
