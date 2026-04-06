@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { apiUrl } from "@/lib/api";
+import { CardSkeleton } from "@/components/Skeleton";
 
 export default function ChecklistsPage() {
   const [checklists, setChecklists] = useState<any[]>([]);
@@ -21,7 +22,15 @@ export default function ChecklistsPage() {
     setSelected(data);
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><p className="text-gray-400">Loading...</p></div>;
+  if (loading) return (
+    <div>
+      <div className="mb-8"><div className="h-8 bg-gray-200 rounded w-40 animate-pulse" /></div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="space-y-3">{[1,2,3,4].map(i => <CardSkeleton key={i} />)}</div>
+        <div className="lg:col-span-2"><div className="bg-white rounded-xl border border-gray-200 h-64 animate-pulse" /></div>
+      </div>
+    </div>
+  );
 
   return (
     <div>
@@ -65,8 +74,12 @@ export default function ChecklistsPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center text-gray-400">
-              <p className="text-lg">Select a checklist to view its items</p>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 text-center py-16 px-6">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-2xl flex items-center justify-center">
+                <span className="text-3xl">📝</span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Select a checklist</h3>
+              <p className="text-sm text-gray-500 max-w-xs mx-auto">Choose a checklist from the left panel to view its items and requirements.</p>
             </div>
           )}
         </div>

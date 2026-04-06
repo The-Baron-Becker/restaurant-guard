@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { apiUrl } from "@/lib/api";
+import { TableSkeleton } from "@/components/Skeleton";
 
 const EMPTY_FORM = {
   restaurant_id: "",
@@ -127,8 +128,9 @@ export default function InspectionsPage() {
 
   if (loading)
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-400">Loading...</p>
+      <div>
+        <div className="mb-8"><div className="h-8 bg-gray-200 rounded w-40 animate-pulse" /></div>
+        <TableSkeleton rows={6} />
       </div>
     );
 
@@ -193,8 +195,24 @@ export default function InspectionsPage() {
           <tbody className="divide-y divide-gray-100">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-10 text-center text-sm text-gray-400">
-                  No inspections match your filters.
+                <td colSpan={7} className="px-6 py-16 text-center">
+                  <div className="w-14 h-14 mx-auto mb-4 bg-gray-100 rounded-2xl flex items-center justify-center">
+                    <span className="text-2xl">{search || statusFilter !== "All" ? "🔍" : "📋"}</span>
+                  </div>
+                  <h3 className="text-base font-semibold text-gray-900 mb-1">
+                    {search || statusFilter !== "All" ? "No inspections match your filters" : "No inspections scheduled"}
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    {search || statusFilter !== "All"
+                      ? "Try adjusting your search or filter criteria."
+                      : "Schedule your first health inspection to get started."}
+                  </p>
+                  {!(search || statusFilter !== "All") && (
+                    <button onClick={() => { setShowModal(true); setFormError(null); setForm(EMPTY_FORM); }}
+                      className="bg-emerald-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-emerald-700 transition">
+                      + Schedule Inspection
+                    </button>
+                  )}
                 </td>
               </tr>
             ) : (

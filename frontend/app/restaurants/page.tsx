@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { apiUrl } from "@/lib/api";
+import { GridSkeleton } from "@/components/Skeleton";
 
 const EMPTY_FORM = {
   name: "", type: "Full Service", address: "", city: "",
@@ -86,7 +87,12 @@ export default function RestaurantsPage() {
     return matchSearch && (typeFilter === "All" || r.type === typeFilter);
   });
 
-  if (loading) return <div className="flex items-center justify-center h-64"><p className="text-gray-400">Loading...</p></div>;
+  if (loading) return (
+    <div>
+      <div className="mb-8"><div className="h-8 bg-gray-200 rounded w-40 animate-pulse" /></div>
+      <GridSkeleton />
+    </div>
+  );
 
   return (
     <div>
@@ -119,7 +125,25 @@ export default function RestaurantsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filtered.length === 0 ? (
-          <div className="col-span-3 text-center py-16 text-gray-400"><p className="text-lg">No restaurants match your search.</p></div>
+          <div className="col-span-3 bg-white rounded-xl border border-gray-200 shadow-sm text-center py-16 px-6">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-2xl flex items-center justify-center">
+              <span className="text-3xl">{search || typeFilter !== "All" ? "🔍" : "🏪"}</span>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+              {search || typeFilter !== "All" ? "No restaurants match your filters" : "No restaurants yet"}
+            </h3>
+            <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+              {search || typeFilter !== "All"
+                ? "Try adjusting your search or filter criteria."
+                : "Add your first restaurant to start tracking compliance."}
+            </p>
+            {!(search || typeFilter !== "All") && (
+              <button onClick={openAdd}
+                className="bg-emerald-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-emerald-700 transition shadow-sm">
+                + Add Restaurant
+              </button>
+            )}
+          </div>
         ) : (
           filtered.map((r: any) => {
             const daysUntil = r.next_inspection_date

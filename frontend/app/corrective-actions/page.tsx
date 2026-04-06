@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { apiUrl } from "@/lib/api";
+import { ListSkeleton } from "@/components/Skeleton";
 
 const SEVERITY_OPTIONS = ["Critical", "High", "Medium", "Low"];
 const EMPTY_FORM = {
@@ -99,7 +100,12 @@ export default function CorrectiveActionsPage() {
   const open = filtered.filter((a) => a.status === "Open");
   const resolved = filtered.filter((a) => a.status === "Resolved");
 
-  if (loading) return <div className="flex items-center justify-center h-64"><p className="text-gray-400">Loading...</p></div>;
+  if (loading) return (
+    <div>
+      <div className="mb-6"><div className="h-8 bg-gray-200 rounded w-56 animate-pulse" /></div>
+      <ListSkeleton />
+    </div>
+  );
   return (
     <div>
       <div className="mb-6 flex items-start justify-between flex-wrap gap-3">
@@ -147,7 +153,13 @@ export default function CorrectiveActionsPage() {
           </h2>
           <div className="space-y-3">
             {open.length === 0 ? (
-              <p className="text-gray-400 text-sm bg-white rounded-xl p-6 border border-gray-200">No open corrective actions match your filters.</p>
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm text-center py-12 px-6">
+                <div className="w-14 h-14 mx-auto mb-3 bg-emerald-100 rounded-2xl flex items-center justify-center">
+                  <span className="text-2xl">✅</span>
+                </div>
+                <h3 className="text-base font-semibold text-gray-900 mb-1">No open actions</h3>
+                <p className="text-sm text-gray-500">{search || severityFilter !== "All" ? "Try adjusting your filters." : "All corrective actions have been resolved."}</p>
+              </div>
             ) : (
               open.map((ca: any) => (
                 <div key={ca.id} className="bg-white rounded-xl shadow-sm border border-orange-200 p-5">

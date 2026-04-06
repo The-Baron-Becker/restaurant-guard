@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { apiUrl } from "@/lib/api";
+import { ListSkeleton } from "@/components/Skeleton";
 
 const TYPE_LABELS: Record<string, string> = {
   inspection_upcoming: "Inspection",
@@ -74,7 +75,12 @@ export default function AlertsPage() {
 
   const unreadCount = filtered.filter((a) => !a.is_read).length;
 
-  if (loading) return <div className="flex items-center justify-center h-64"><p className="text-gray-400">Loading...</p></div>;
+  if (loading) return (
+    <div>
+      <div className="mb-6"><div className="h-8 bg-gray-200 rounded w-32 animate-pulse" /></div>
+      <ListSkeleton />
+    </div>
+  );
 
   return (
     <div>
@@ -121,7 +127,19 @@ export default function AlertsPage() {
 
       <div className="space-y-3">
         {filtered.length === 0 ? (
-          <p className="text-gray-400 text-center py-12 bg-white rounded-xl border border-gray-200">No alerts match your filters.</p>
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm text-center py-16 px-6">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-2xl flex items-center justify-center">
+                <span className="text-3xl">{restFilter !== "all" || typeFilter !== "all" || readFilter !== "all" ? "🔍" : "🔔"}</span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                {restFilter !== "all" || typeFilter !== "all" || readFilter !== "all" ? "No alerts match your filters" : "All clear!"}
+              </h3>
+              <p className="text-sm text-gray-500 max-w-sm mx-auto">
+                {restFilter !== "all" || typeFilter !== "all" || readFilter !== "all"
+                  ? "Try adjusting your filter criteria."
+                  : "No compliance alerts or reminders at this time."}
+              </p>
+            </div>
         ) : (
           filtered.map((alert: any) => (
             <div key={alert.id} className={`bg-white rounded-xl shadow-sm border p-5 transition ${TYPE_BG[alert.type] || "border-gray-200"} ${!alert.is_read ? "ring-1 ring-offset-1 ring-blue-300" : "opacity-75"}`}>
