@@ -46,4 +46,23 @@ router.get('/stats', async (_req, res) => {
   }
 });
 
+router.get('/score-trend', async (_req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT TO_CHAR(date_trunc('month', completed_date), 'YYYY-MM') AS month,
+              ROUND(AVG(score))::int AS avg_score,
+              COUNT(*)::int AS inspection_count
+       FROM inspections
+       WHERE status = 'Completed' AND completed_date IS NOT NULL AND score IS NOT NULL
+         AND completed_date >= (CURRENT_DATE - INTERVAL '6 months')
+       GROUP BY 1
+       ORDER BY 1 ASC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch score trend' });
+  }
+});
+
 export default router;

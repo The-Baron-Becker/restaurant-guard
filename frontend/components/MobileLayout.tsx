@@ -27,7 +27,10 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
       </div>
 
       {/* Sidebar - desktop: fixed, mobile: slide-over */}
-      <aside className={`
+      <aside
+        aria-label="Primary navigation"
+        aria-hidden={typeof window !== "undefined" && window.innerWidth < 1024 && !sidebarOpen ? "true" : undefined}
+        className={`
         fixed h-full bg-emerald-900 text-white flex flex-col z-50
         transition-transform duration-300 ease-in-out
         w-64
@@ -56,7 +59,7 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
       )}
 
       {/* Main content */}
-      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 p-4 sm:p-6 lg:p-8">
+      <main id="main-content" role="main" className="flex-1 lg:ml-64 pt-14 lg:pt-0 p-4 sm:p-6 lg:p-8 focus:outline-none" tabIndex={-1}>
         {children}
       </main>
     </div>

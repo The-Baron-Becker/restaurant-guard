@@ -43,7 +43,7 @@ export default function SidebarNav({ isOpen, onClose }: { isOpen?: boolean; onCl
           onClick={onClose}
         />
       )}
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1" aria-label="Main sections">
         {NAV_ITEMS.map((item) => {
           const active = isActive(item.href);
           const badge = item.badgeKey === "alerts" && unreadAlerts > 0 ? unreadAlerts : null;
@@ -52,7 +52,9 @@ export default function SidebarNav({ isOpen, onClose }: { isOpen?: boolean; onCl
               key={item.href}
               href={item.href}
               onClick={onClose}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm font-medium ${
+              aria-current={active ? "page" : undefined}
+              aria-label={badge !== null ? `${item.label}, ${badge} unread` : item.label}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-emerald-900 ${
                 active
                   ? "bg-emerald-700 text-white shadow-sm"
                   : "hover:bg-emerald-800 text-emerald-100"

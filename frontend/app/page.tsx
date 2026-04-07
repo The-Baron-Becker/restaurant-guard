@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { apiUrl } from "@/lib/api";
 import { DashboardSkeleton } from "@/components/Skeleton";
+import ScoreTrendChart from "@/components/ScoreTrendChart";
 
 interface DashboardStats {
   total_restaurants: number;
@@ -75,6 +76,8 @@ export default function Dashboard() {
           <p className="text-3xl font-bold text-red-600 mt-2">{stats.unread_alerts}</p>
         </div>
       </div>
+
+      <ScoreTrendChart />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
