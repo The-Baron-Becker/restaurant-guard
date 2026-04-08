@@ -116,6 +116,33 @@ export default function InspectionsPage() {
     }
   };
 
+  const exportCsv = () => {
+    const headers = ["Restaurant", "Type", "Scheduled Date", "Inspector", "Status", "Score", "Notes"];
+    const escape = (v: any) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = filtered.map((i: any) => [
+      i.restaurant_name,
+      i.inspection_type,
+      i.scheduled_date ? new Date(i.scheduled_date).toISOString().slice(0, 10) : "",
+      i.inspector_name || "",
+      i.status,
+      i.score ?? "",
+      i.notes || "",
+    ].map(escape).join(","));
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `inspections-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const filtered = inspections.filter((insp) => {
     const matchSearch =
       !search ||
@@ -141,12 +168,22 @@ export default function InspectionsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Inspections</h1>
           <p className="text-gray-500 mt-1">Track all health inspections across your restaurants</p>
         </div>
-        <button
-          onClick={() => { setShowModal(true); setFormError(null); setForm(EMPTY_FORM); }}
-          className="bg-emerald-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-emerald-700 transition flex items-center gap-2"
-        >
-          <span className="text-base">+</span> Schedule Inspection
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={exportCsv}
+            disabled={filtered.length === 0}
+            className="bg-white border border-gray-200 text-gray-700 text-sm font-semibold px-4 py-2 rounded-lg hover:bg-gray-50 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Export filtered inspections to CSV"
+          >
+            <span aria-hidden="true">⬇</span> Export CSV
+          </button>
+          <button
+            onClick={() => { setShowModal(true); setFormError(null); setForm(EMPTY_FORM); }}
+            className="bg-emerald-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-emerald-700 transition flex items-center gap-2"
+          >
+            <span className="text-base">+</span> Schedule Inspection
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

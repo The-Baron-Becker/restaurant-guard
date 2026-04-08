@@ -1,3 +1,52 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+/* Print-friendly styles: clean output for inspectors printing inspection
+   reports, checklists, and corrective action logs to PDF or paper. */
+@media print {
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11pt;
+  }
+  /* Hide navigation and interactive chrome when printing */
+  aside,
+  nav,
+  [role="navigation"],
+  .no-print,
+  button,
+  a[href="#main-content"] {
+    display: none !important;
+  }
+  main, #main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+  /* Expand cards edge-to-edge, drop shadows and heavy borders */
+  .shadow-sm, .shadow, .shadow-md, .shadow-lg {
+    box-shadow: none !important;
+  }
+  .rounded-xl, .rounded-2xl, .rounded-lg {
+    border-radius: 0 !important;
+  }
+  .bg-gray-50, .bg-white {
+    background: #fff !important;
+  }
+  /* Keep table rows from breaking across pages */
+  table { page-break-inside: auto; }
+  tr    { page-break-inside: avoid; page-break-after: auto; }
+  thead { display: table-header-group; }
+  /* Show link URLs for reference */
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    color: #555;
+  }
+  a[href^="#"]:after,
+  a[href^="javascript:"]:after {
+    content: "";
+  }
+}
