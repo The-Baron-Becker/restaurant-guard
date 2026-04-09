@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import MobileLayout from "@/components/MobileLayout";
+import { ToastProvider } from "@/components/Toast";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://restaurantguard.app"),
@@ -52,7 +53,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           Skip to main content
         </a>
-        <MobileLayout>{children}</MobileLayout>
+        <ToastProvider>
+          <MobileLayout>{children}</MobileLayout>
+        </ToastProvider>
       </body>
     </html>
   );

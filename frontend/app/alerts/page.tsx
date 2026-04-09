@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { apiUrl } from "@/lib/api";
 import { ListSkeleton } from "@/components/Skeleton";
+import { useToast } from "@/components/Toast";
 
 const TYPE_LABELS: Record<string, string> = {
   inspection_upcoming: "Inspection",
@@ -26,6 +27,7 @@ export default function AlertsPage() {
   const [loading, setLoading] = useState(true);
   const [markingRead, setMarkingRead] = useState<number | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
+  const { toast } = useToast();
 
   // Filters
   const [restFilter, setRestFilter] = useState("all");
@@ -46,8 +48,8 @@ export default function AlertsPage() {
     setMarkingRead(id);
     try {
       const res = await fetch(apiUrl(`/api/alerts/${id}/read`), { method: "PATCH" });
-      if (res.ok) setAlerts((prev) => prev.map((a) => a.id === id ? { ...a, is_read: true } : a));
-    } catch (err) { console.error(err); }
+      if (res.ok) { setAlerts((prev) => prev.map((a) => a.id === id ? { ...a, is_read: true } : a)); toast("Alert marked as read"); }
+    } catch (err) { console.error(err); toast("Failed to mark alert", "error"); }
     finally { setMarkingRead(null); }
   };
 
@@ -60,8 +62,9 @@ export default function AlertsPage() {
         setAlerts((prev) => prev.map((a) =>
           (restFilter === "all" || String(a.restaurant_id) === restFilter) ? { ...a, is_read: true } : a
         ));
+        toast("All alerts marked as read");
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); toast("Failed to mark alerts", "error"); }
     finally { setMarkingAll(false); }
   };
 

@@ -1,7 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { apiUrl } from "@/lib/api";
 import { TableSkeleton } from "@/components/Skeleton";
+import { useToast } from "@/components/Toast";
+import { useModalA11y } from "@/lib/useModal";
 
 const EMPTY_FORM = {
   restaurant_id: "",
@@ -30,6 +32,13 @@ export default function InspectionsPage() {
   // Filter state
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
+  const { toast } = useToast();
+  const closeSchedule = useCallback(() => setShowModal(false), []);
+  const closeComplete = useCallback(() => setCompleteTarget(null), []);
+  const scheduleModalRef = useModalA11y(showModal, closeSchedule);
+  const completeModalRef = useModalA11y(!!completeTarget, closeComplete);
 
   useEffect(() => {
     Promise.all([
@@ -67,8 +76,10 @@ export default function InspectionsPage() {
       setInspections((prev) => [{ ...created, restaurant_name: rest?.name }, ...prev]);
       setShowModal(false);
       setForm(EMPTY_FORM);
+      toast("Inspection scheduled successfully");
     } catch {
       setFormError("Something went wrong. Please try again.");
+      toast("Failed to schedule inspection", "error");
     } finally {
       setSaving(false);
     }
@@ -94,8 +105,10 @@ export default function InspectionsPage() {
       setInspections((prev) => prev.map((i) => i.id === updated.id ? updated : i));
       setCompleteTarget(null);
       setCompleteForm(EMPTY_COMPLETE);
+      toast("Inspection marked as complete");
     } catch {
       setCompleteError("Something went wrong. Please try again.");
+      toast("Failed to complete inspection", "error");
     } finally {
       setCompleting(false);
     }
@@ -152,6 +165,13 @@ export default function InspectionsPage() {
     const matchStatus = statusFilter === "All" || insp.status === statusFilter;
     return matchSearch && matchStatus;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  // Reset to page 1 when filters change
+  useEffect(() => { setCurrentPage(1); }, [search, statusFilter]);
 
   if (loading)
     return (
@@ -253,7 +273,7 @@ export default function InspectionsPage() {
                 </td>
               </tr>
             ) : (
-              filtered.map((insp: any) => (
+              paginated.map((insp: any) => (
                 <tr key={insp.id} className="hover:bg-gray-50 transition">
                   <td className="px-6 py-4 font-medium text-gray-900">{insp.restaurant_name}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{insp.inspection_type}</td>
@@ -292,10 +312,48 @@ export default function InspectionsPage() {
         </table>
       </div>
 
+      {/* Pagination */}
+      {filtered.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between mt-4 px-1">
+          <p className="text-sm text-gray-500">
+            Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length}
+          </p>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              className="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              ← Prev
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-8 h-8 text-sm font-semibold rounded-lg transition ${
+                  page === safePage
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              className="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              Next →
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Complete Inspection Modal */}
       {completeTarget && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-label="Complete inspection">
+          <div ref={completeModalRef} className="bg-white rounded-2xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">Complete Inspection</h2>
@@ -345,8 +403,8 @@ export default function InspectionsPage() {
 
       {/* Schedule Inspection Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-label="Schedule inspection">
+          <div ref={scheduleModalRef} className="bg-white rounded-2xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <h2 className="text-lg font-bold text-gray-900">Schedule Inspection</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-700 text-xl font-bold transition">✕</button>

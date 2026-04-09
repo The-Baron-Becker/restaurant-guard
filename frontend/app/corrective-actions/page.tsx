@@ -1,7 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { apiUrl } from "@/lib/api";
 import { ListSkeleton } from "@/components/Skeleton";
+import { useToast } from "@/components/Toast";
+import { useModalA11y } from "@/lib/useModal";
 
 const SEVERITY_OPTIONS = ["Critical", "High", "Medium", "Low"];
 const EMPTY_FORM = {
@@ -20,6 +22,9 @@ export default function CorrectiveActionsPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const { toast } = useToast();
+  const closeModal = useCallback(() => setShowModal(false), []);
+  const createModalRef = useModalA11y(showModal, closeModal);
   // Filters
   const [search, setSearch] = useState("");
   const [severityFilter, setSeverityFilter] = useState("All");
@@ -47,8 +52,9 @@ export default function CorrectiveActionsPage() {
         setActions((prev) => prev.map((a) =>
           a.id === id ? { ...a, status: "Resolved", completed_at: new Date().toISOString() } : a
         ));
+        toast("Corrective action resolved");
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); toast("Failed to resolve action", "error"); }
     finally { setResolving(null); }
   };
   const handleCreate = async (e: React.FormEvent) => {
@@ -74,7 +80,8 @@ export default function CorrectiveActionsPage() {
       const rest = restaurants.find((r) => r.id === created.restaurant_id);
       setActions((prev) => [{ ...created, restaurant_name: rest?.name }, ...prev]);
       setShowModal(false); setForm(EMPTY_FORM);
-    } catch { setFormError("Something went wrong. Please try again."); }
+      toast("Corrective action created");
+    } catch { setFormError("Something went wrong. Please try again."); toast("Failed to create action", "error"); }
     finally { setSaving(false); }
   };
   const severityBadge = (s: string) => {
@@ -212,8 +219,8 @@ export default function CorrectiveActionsPage() {
 
       {/* Create Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-label="New corrective action">
+          <div ref={createModalRef} className="bg-white rounded-2xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <h2 className="text-lg font-bold text-gray-900">New Corrective Action</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-700 text-xl font-bold transition">✕</button>

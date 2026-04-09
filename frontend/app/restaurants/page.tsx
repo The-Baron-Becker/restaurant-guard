@@ -1,7 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { apiUrl } from "@/lib/api";
 import { GridSkeleton } from "@/components/Skeleton";
+import { useToast } from "@/components/Toast";
+import { useModalA11y } from "@/lib/useModal";
 
 const EMPTY_FORM = {
   name: "", type: "Full Service", address: "", city: "",
@@ -21,6 +23,11 @@ export default function RestaurantsPage() {
   const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("All");
+  const { toast } = useToast();
+  const closeModal = useCallback(() => { setShowModal(false); setEditTarget(null); }, []);
+  const closeDelete = useCallback(() => setDeleteConfirm(null), []);
+  const modalRef = useModalA11y(showModal, closeModal);
+  const deleteModalRef = useModalA11y(!!deleteConfirm, closeDelete);
 
   useEffect(() => {
     fetch(apiUrl("/api/restaurants"))
@@ -58,11 +65,13 @@ export default function RestaurantsPage() {
       const saved = await res.json();
       if (editTarget) {
         setRestaurants((prev) => prev.map((r) => r.id === saved.id ? saved : r));
+        toast("Restaurant updated successfully");
       } else {
         setRestaurants((prev) => [...prev, saved]);
+        toast("Restaurant added successfully");
       }
       setShowModal(false); setEditTarget(null); setForm(EMPTY_FORM);
-    } catch { setError("Something went wrong. Please try again."); }
+    } catch { setError("Something went wrong. Please try again."); toast("Failed to save restaurant", "error"); }
     finally { setSaving(false); }
   };
 
@@ -74,7 +83,8 @@ export default function RestaurantsPage() {
       if (!res.ok) throw new Error("Failed to delete");
       setRestaurants((prev) => prev.filter((r) => r.id !== deleteConfirm.id));
       setDeleteConfirm(null);
-    } catch { alert("Failed to delete. Please try again."); }
+      toast("Restaurant deleted");
+    } catch { toast("Failed to delete restaurant", "error"); }
     finally { setDeleting(false); }
   };
 
@@ -190,8 +200,8 @@ export default function RestaurantsPage() {
 
       {/* Delete Confirm Modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-label="Delete restaurant confirmation">
+          <div ref={deleteModalRef} className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-2">Delete Restaurant?</h2>
             <p className="text-sm text-gray-500 mb-1">This will permanently delete <span className="font-semibold text-gray-800">{deleteConfirm.name}</span> and all associated inspections, checklists, corrective actions, and alerts.</p>
             <p className="text-xs font-semibold text-red-600 mb-5">This action cannot be undone.</p>
@@ -208,8 +218,8 @@ export default function RestaurantsPage() {
 
       {/* Add / Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-label={editTarget ? "Edit restaurant" : "Add restaurant"}>
+          <div ref={modalRef} className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
               <h2 className="text-lg font-bold text-gray-900">{editTarget ? "Edit Restaurant" : "Add Restaurant"}</h2>
               <button onClick={() => { setShowModal(false); setEditTarget(null); }} className="text-gray-400 hover:text-gray-700 text-xl font-bold transition">✕</button>
