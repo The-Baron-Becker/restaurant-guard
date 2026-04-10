@@ -1,8 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
-import { apiUrl } from "@/lib/api";
+import { useCallback } from "react";
+import { fetchApi } from "@/lib/api";
 import { DashboardSkeleton } from "@/components/Skeleton";
 import ScoreTrendChart from "@/components/ScoreTrendChart";
+import RefreshBar from "@/components/RefreshBar";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 interface DashboardStats {
   total_restaurants: number;
@@ -15,16 +17,12 @@ interface DashboardStats {
 }
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch(apiUrl("/api/dashboard/stats"))
-      .then((r) => r.json())
-      .then(setStats)
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+  const fetcher = useCallback(
+    () => fetchApi<DashboardStats>("/api/dashboard/stats"),
+    []
+  );
+  const { data: stats, loading, lastUpdated, refresh, refreshing } =
+    useAutoRefresh(fetcher, { interval: 60000 });
 
   if (loading) return <DashboardSkeleton />;
   if (!stats) return (
@@ -49,9 +47,12 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 mt-1">Food safety compliance overview</p>
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-500 mt-1">Food safety compliance overview</p>
+        </div>
+        <RefreshBar lastUpdated={lastUpdated} onRefresh={refresh} refreshing={refreshing} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">

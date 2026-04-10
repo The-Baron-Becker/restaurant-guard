@@ -1,9 +1,11 @@
 "use client";
 import { useState } from "react";
 import SidebarNav from "@/components/SidebarNav";
+import { useTheme } from "@/components/ThemeProvider";
 
 export default function MobileLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { resolved, toggle } = useTheme();
 
   return (
     <div className="min-h-screen flex">
@@ -46,8 +48,16 @@ export default function MobileLayout({ children }: { children: React.ReactNode }
         {/* Spacer for mobile header */}
         <div className="h-14 lg:hidden" />
         <SidebarNav isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="p-4 border-t border-emerald-800 text-xs text-emerald-400">
-          v1.0 — Factory Build
+        <div className="p-4 border-t border-emerald-800 flex items-center justify-between">
+          <span className="text-xs text-emerald-400">v1.0 — Factory Build</span>
+          <button
+            onClick={toggle}
+            className="text-emerald-300 hover:text-white p-1.5 rounded-lg hover:bg-emerald-800 transition"
+            aria-label={`Switch to ${resolved === "dark" ? "light" : "dark"} mode`}
+            title={`Switch to ${resolved === "dark" ? "light" : "dark"} mode`}
+          >
+            {resolved === "dark" ? "☀️" : "🌙"}
+          </button>
         </div>
       </aside>
       {/* Mobile overlay */}
