@@ -78,6 +78,49 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <a href="/restaurants"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md hover:border-emerald-300 transition cursor-pointer">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center text-xl">🏪</div>
+            <div>
+              <p className="font-semibold text-gray-900 text-sm">Add Restaurant</p>
+              <p className="text-xs text-gray-500">Register a new location</p>
+            </div>
+          </div>
+        </a>
+        <a href="/inspections"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md hover:border-emerald-300 transition cursor-pointer">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center text-xl">📋</div>
+            <div>
+              <p className="font-semibold text-gray-900 text-sm">Schedule Inspection</p>
+              <p className="text-xs text-gray-500">Plan compliance checks</p>
+            </div>
+          </div>
+        </a>
+        <a href="/corrective-actions"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md hover:border-emerald-300 transition cursor-pointer">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center text-xl">✅</div>
+            <div>
+              <p className="font-semibold text-gray-900 text-sm">Corrective Actions</p>
+              <p className="text-xs text-gray-500">Track improvements</p>
+            </div>
+          </div>
+        </a>
+        <a href="/checklists"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md hover:border-emerald-300 transition cursor-pointer">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center text-xl">📝</div>
+            <div>
+              <p className="font-semibold text-gray-900 text-sm">Manage Checklists</p>
+              <p className="text-xs text-gray-500">Create or edit templates</p>
+            </div>
+          </div>
+        </a>
+      </div>
+
       <ScoreTrendChart />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
