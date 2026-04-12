@@ -1,9 +1,18 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
-import { apiUrl } from "@/lib/api";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { fetchApi } from "@/lib/api";
 import { TableSkeleton } from "@/components/Skeleton";
 import { useToast } from "@/components/Toast";
 import { useModalA11y } from "@/lib/useModal";
+
+export default function InspectionsPage() {
+  return (
+    <Suspense fallback={<div><div className="mb-8"><div className="h-8 bg-gray-200 rounded w-40 animate-pulse" /></div><TableSkeleton rows={6} /></div>}>
+      <InspectionsPageInner />
+    </Suspense>
+  );
+}
 
 const EMPTY_FORM = {
   restaurant_id: "",
@@ -14,7 +23,7 @@ const EMPTY_FORM = {
 
 const EMPTY_COMPLETE = { score: "", notes: "" };
 
-export default function InspectionsPage() {
+function InspectionsPageInner() {
   const [inspections, setInspections] = useState<any[]>([]);
   const [restaurants, setRestaurants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,12 +38,24 @@ export default function InspectionsPage() {
   const [completing, setCompleting] = useState(false);
   const [completeError, setCompleteError] = useState<string | null>(null);
 
-  // Filter state
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [currentPage, setCurrentPage] = useState(1);
+  // Filter state — initialize from URL query params
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [search, setSearch] = useState(searchParams.get("q") || "");
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "All");
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get("page")) || 1);
   const PAGE_SIZE = 10;
   const { toast } = useToast();
+
+  // Sync filters to URL query params
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set("q", search);
+    if (statusFilter !== "All") params.set("status", statusFilter);
+    if (currentPage > 1) params.set("page", String(currentPage));
+    const qs = params.toString();
+    router.replace(qs ? `?${qs}` : "/inspections", { scroll: false });
+  }, [search, statusFilter, currentPage, router]);
   const closeSchedule = useCallback(() => setShowModal(false), []);
   const closeComplete = useCallback(() => setCompleteTarget(null), []);
   const scheduleModalRef = useModalA11y(showModal, closeSchedule);
@@ -42,8 +63,8 @@ export default function InspectionsPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(apiUrl("/api/inspections")).then((r) => r.json()),
-      fetch(apiUrl("/api/restaurants")).then((r) => r.json()),
+      fetchApi("/api/inspections"),
+      fetchApi("/api/restaurants"),
     ])
       .then(([insp, rests]) => {
         setInspections(insp);
@@ -60,7 +81,7 @@ export default function InspectionsPage() {
     setSaving(true);
     setFormError(null);
     try {
-      const res = await fetch(apiUrl("/api/inspections"), {
+      const created = await fetchApi("/api/inspections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -70,8 +91,6 @@ export default function InspectionsPage() {
           scheduled_date: form.scheduled_date,
         }),
       });
-      if (!res.ok) throw new Error("Failed to save");
-      const created = await res.json();
       const rest = restaurants.find((r) => r.id === created.restaurant_id);
       setInspections((prev) => [{ ...created, restaurant_name: rest?.name }, ...prev]);
       setShowModal(false);
@@ -95,13 +114,11 @@ export default function InspectionsPage() {
     setCompleting(true);
     setCompleteError(null);
     try {
-      const res = await fetch(apiUrl(`/api/inspections/${completeTarget.id}`), {
+      const updated = await fetchApi(`/api/inspections/${completeTarget.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "Completed", score: scoreNum, notes: completeForm.notes || null }),
       });
-      if (!res.ok) throw new Error("Failed to complete");
-      const updated = await res.json();
       setInspections((prev) => prev.map((i) => i.id === updated.id ? updated : i));
       setCompleteTarget(null);
       setCompleteForm(EMPTY_COMPLETE);

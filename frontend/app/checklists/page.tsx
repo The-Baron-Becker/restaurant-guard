@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { apiUrl } from "@/lib/api";
+import { fetchApi } from "@/lib/api";
 import { CardSkeleton } from "@/components/Skeleton";
 import { useToast } from "@/components/Toast";
 import { useModalA11y } from "@/lib/useModal";
@@ -55,8 +55,7 @@ export default function ChecklistsPage() {
   const deleteModalRef = useModalA11y(!!deleteConfirm, closeDelete);
 
   useEffect(() => {
-    fetch(apiUrl("/api/checklists"))
-      .then((r) => r.json())
+    fetchApi("/api/checklists")
       .then(setChecklists)
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -94,10 +93,10 @@ export default function ChecklistsPage() {
     setError(null);
     try {
       const method = editTarget ? "PATCH" : "POST";
-      const url = editTarget
-        ? apiUrl(`/api/checklists/${editTarget.id}`)
-        : apiUrl("/api/checklists");
-      const res = await fetch(url, {
+      const path = editTarget
+        ? `/api/checklists/${editTarget.id}`
+        : "/api/checklists";
+      const saved = await fetchApi(path, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -108,8 +107,6 @@ export default function ChecklistsPage() {
           items: form.items,
         }),
       });
-      if (!res.ok) throw new Error("Failed to save");
-      const saved = await res.json();
       if (editTarget) {
         setChecklists((prev: any[]) =>
           prev.map((cl: any) => (cl.id === saved.id ? { ...saved, items: form.items } : cl))
@@ -164,10 +161,9 @@ export default function ChecklistsPage() {
     if (!deleteConfirm) return;
     setDeleting(true);
     try {
-      const res = await fetch(apiUrl(`/api/checklists/${deleteConfirm.id}`), {
+      await fetchApi(`/api/checklists/${deleteConfirm.id}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Failed to delete");
       setChecklists((prev: any[]) =>
         prev.filter((cl: any) => cl.id !== deleteConfirm.id)
       );
@@ -184,8 +180,7 @@ export default function ChecklistsPage() {
   };
 
   const loadChecklist = async (id: number) => {
-    const res = await fetch(apiUrl(`/api/checklists/${id}`));
-    const data = await res.json();
+    const data = await fetchApi(`/api/checklists/${id}`);
     setSelected(data);
   };
 

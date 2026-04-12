@@ -1,7 +1,20 @@
 import { Router } from 'express';
 import pool from '../db';
+import { validate } from '../validate';
 
 const router = Router();
+
+const createActionValidation = validate({
+  restaurant_id: { required: true, type: 'number' },
+  description: { required: true, type: 'string', maxLength: 2000 },
+  due_date: { required: true, type: 'date' },
+  severity: { type: 'string', oneOf: ['Critical', 'High', 'Medium', 'Low'] },
+  assigned_to: { type: 'string', maxLength: 200 },
+});
+
+const updateActionValidation = validate({
+  status: { required: true, type: 'string', oneOf: ['Open', 'Resolved'] },
+});
 
 router.get('/', async (req, res) => {
   try {
@@ -22,7 +35,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', updateActionValidation, async (req, res) => {
   try {
     const { status, completed_at } = req.body;
     const result = await pool.query(
@@ -36,7 +49,7 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', createActionValidation, async (req, res) => {
   try {
     const { inspection_id, restaurant_id, description, severity, assigned_to, due_date } = req.body;
     const result = await pool.query(

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { apiUrl } from "@/lib/api";
+import { fetchApi } from "@/lib/api";
 
 export default function RestaurantDetailPage() {
   const params = useParams();
@@ -16,10 +16,10 @@ export default function RestaurantDetailPage() {
   useEffect(() => {
     if (!id) return;
     Promise.all([
-      fetch(apiUrl(`/api/restaurants/${id}`)).then((r) => r.json()),
-      fetch(apiUrl("/api/inspections")).then((r) => r.json()),
-      fetch(apiUrl("/api/corrective-actions")).then((r) => r.json()),
-      fetch(apiUrl("/api/alerts")).then((r) => r.json()),
+      fetchApi(`/api/restaurants/${id}`),
+      fetchApi("/api/inspections"),
+      fetchApi("/api/corrective-actions"),
+      fetchApi("/api/alerts"),
     ])
       .then(([rest, allInsp, allActs, allAlerts]) => {
         setRestaurant(rest);

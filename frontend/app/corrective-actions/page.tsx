@@ -1,9 +1,18 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
-import { apiUrl } from "@/lib/api";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { fetchApi } from "@/lib/api";
 import { ListSkeleton } from "@/components/Skeleton";
 import { useToast } from "@/components/Toast";
 import { useModalA11y } from "@/lib/useModal";
+
+export default function CorrectiveActionsPage() {
+  return (
+    <Suspense fallback={<div><div className="mb-6"><div className="h-8 bg-gray-200 rounded w-56 animate-pulse" /></div><ListSkeleton /></div>}>
+      <CorrectiveActionsInner />
+    </Suspense>
+  );
+}
 
 const SEVERITY_OPTIONS = ["Critical", "High", "Medium", "Low"];
 const EMPTY_FORM = {
@@ -11,7 +20,7 @@ const EMPTY_FORM = {
   assigned_to: "", due_date: "",
 };
 
-export default function CorrectiveActionsPage() {
+function CorrectiveActionsInner() {
   const [actions, setActions] = useState<any[]>([]);
   const [restaurants, setRestaurants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,15 +34,27 @@ export default function CorrectiveActionsPage() {
   const { toast } = useToast();
   const closeModal = useCallback(() => setShowModal(false), []);
   const createModalRef = useModalA11y(showModal, closeModal);
-  // Filters
-  const [search, setSearch] = useState("");
-  const [severityFilter, setSeverityFilter] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("All");
+  // Filters — initialize from URL query params
+  const searchParams = useSearchParams();
+  const routerCA = useRouter();
+  const [search, setSearch] = useState(searchParams.get("q") || "");
+  const [severityFilter, setSeverityFilter] = useState(searchParams.get("severity") || "All");
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "All");
+
+  // Sync filters to URL query params
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set("q", search);
+    if (statusFilter !== "All") params.set("status", statusFilter);
+    if (severityFilter !== "All") params.set("severity", severityFilter);
+    const qs = params.toString();
+    routerCA.replace(qs ? `?${qs}` : "/corrective-actions", { scroll: false });
+  }, [search, statusFilter, severityFilter, routerCA]);
 
   useEffect(() => {
     Promise.all([
-      fetch(apiUrl("/api/corrective-actions")).then((r) => r.json()),
-      fetch(apiUrl("/api/restaurants")).then((r) => r.json()),
+      fetchApi("/api/corrective-actions"),
+      fetchApi("/api/restaurants"),
     ])
       .then(([acts, rests]) => { setActions(acts); setRestaurants(rests); })
       .catch(console.error)
@@ -43,17 +64,15 @@ export default function CorrectiveActionsPage() {
   const handleResolve = async (id: number) => {
     setResolving(id);
     try {
-      const res = await fetch(apiUrl(`/api/corrective-actions/${id}`), {
+      await fetchApi(`/api/corrective-actions/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "Resolved" }),
       });
-      if (res.ok) {
-        setActions((prev) => prev.map((a) =>
-          a.id === id ? { ...a, status: "Resolved", completed_at: new Date().toISOString() } : a
-        ));
-        toast("Corrective action resolved");
-      }
+      setActions((prev) => prev.map((a) =>
+        a.id === id ? { ...a, status: "Resolved", completed_at: new Date().toISOString() } : a
+      ));
+      toast("Corrective action resolved");
     } catch (err) { console.error(err); toast("Failed to resolve action", "error"); }
     finally { setResolving(null); }
   };
@@ -64,7 +83,7 @@ export default function CorrectiveActionsPage() {
     if (!form.due_date) { setFormError("Due date is required."); return; }
     setSaving(true); setFormError(null);
     try {
-      const res = await fetch(apiUrl("/api/corrective-actions"), {
+      const created = await fetchApi("/api/corrective-actions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -75,8 +94,6 @@ export default function CorrectiveActionsPage() {
           due_date: form.due_date,
         }),
       });
-      if (!res.ok) throw new Error("Failed");
-      const created = await res.json();
       const rest = restaurants.find((r) => r.id === created.restaurant_id);
       setActions((prev) => [{ ...created, restaurant_name: rest?.name }, ...prev]);
       setShowModal(false); setForm(EMPTY_FORM);

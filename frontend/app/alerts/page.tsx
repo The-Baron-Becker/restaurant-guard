@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { apiUrl } from "@/lib/api";
+import { fetchApi } from "@/lib/api";
 import { ListSkeleton } from "@/components/Skeleton";
 import { useToast } from "@/components/Toast";
 
@@ -36,8 +36,8 @@ export default function AlertsPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(apiUrl("/api/alerts")).then((r) => r.json()),
-      fetch(apiUrl("/api/restaurants")).then((r) => r.json()),
+      fetchApi("/api/alerts"),
+      fetchApi("/api/restaurants"),
     ])
       .then(([alts, rests]) => { setAlerts(Array.isArray(alts) ? alts : []); setRestaurants(Array.isArray(rests) ? rests : []); })
       .catch(console.error)
@@ -47,8 +47,8 @@ export default function AlertsPage() {
   const handleMarkRead = async (id: number) => {
     setMarkingRead(id);
     try {
-      const res = await fetch(apiUrl(`/api/alerts/${id}/read`), { method: "PATCH" });
-      if (res.ok) { setAlerts((prev) => prev.map((a) => a.id === id ? { ...a, is_read: true } : a)); toast("Alert marked as read"); }
+      await fetchApi(`/api/alerts/${id}/read`, { method: "PATCH" });
+      setAlerts((prev) => prev.map((a) => a.id === id ? { ...a, is_read: true } : a)); toast("Alert marked as read");
     } catch (err) { console.error(err); toast("Failed to mark alert", "error"); }
     finally { setMarkingRead(null); }
   };
@@ -57,13 +57,11 @@ export default function AlertsPage() {
     setMarkingAll(true);
     try {
       const qs = restFilter !== "all" ? `?restaurant_id=${restFilter}` : "";
-      const res = await fetch(apiUrl(`/api/alerts/read-all${qs}`), { method: "PATCH" });
-      if (res.ok) {
-        setAlerts((prev) => prev.map((a) =>
-          (restFilter === "all" || String(a.restaurant_id) === restFilter) ? { ...a, is_read: true } : a
-        ));
-        toast("All alerts marked as read");
-      }
+      await fetchApi(`/api/alerts/read-all${qs}`, { method: "PATCH" });
+      setAlerts((prev) => prev.map((a) =>
+        (restFilter === "all" || String(a.restaurant_id) === restFilter) ? { ...a, is_read: true } : a
+      ));
+      toast("All alerts marked as read");
     } catch (err) { console.error(err); toast("Failed to mark alerts", "error"); }
     finally { setMarkingAll(false); }
   };

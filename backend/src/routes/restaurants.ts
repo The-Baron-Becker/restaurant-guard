@@ -1,7 +1,20 @@
 import { Router } from 'express';
 import pool from '../db';
+import { validate } from '../validate';
 
 const router = Router();
+
+const restaurantValidation = validate({
+  name: { required: true, type: 'string', maxLength: 200 },
+  type: { type: 'string', maxLength: 100 },
+  address: { type: 'string', maxLength: 300 },
+  city: { type: 'string', maxLength: 100 },
+  state: { type: 'string', maxLength: 2 },
+  zip: { type: 'string', maxLength: 10 },
+  phone: { type: 'string', maxLength: 20 },
+  health_dept_id: { type: 'string', maxLength: 50 },
+  next_inspection_date: { type: 'date' },
+});
 
 router.get('/', async (_req, res) => {
   try {
@@ -22,7 +35,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', restaurantValidation, async (req, res) => {
   try {
     const { name, type, address, city, state, zip, phone, health_dept_id, next_inspection_date } = req.body;
     const result = await pool.query(
@@ -36,7 +49,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', restaurantValidation, async (req, res) => {
   try {
     const { name, type, address, city, state, zip, phone, health_dept_id, next_inspection_date } = req.body;
     const result = await pool.query(

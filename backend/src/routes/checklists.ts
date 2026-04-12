@@ -1,7 +1,14 @@
 import { Router } from 'express';
 import pool from '../db';
+import { validate } from '../validate';
 
 const router = Router();
+
+const checklistValidation = validate({
+  name: { required: true, type: 'string', maxLength: 200 },
+  category: { type: 'string', maxLength: 100 },
+  description: { type: 'string', maxLength: 1000 },
+});
 
 router.get('/', async (req, res) => {
   try {
@@ -34,7 +41,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', checklistValidation, async (req, res) => {
   try {
     const { restaurant_id, name, category, description, is_template, items } = req.body;
     const result = await pool.query(

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { apiUrl } from "@/lib/api";
+import { fetchApi } from "@/lib/api";
 import { GridSkeleton } from "@/components/Skeleton";
 import { useToast } from "@/components/Toast";
 import { useModalA11y } from "@/lib/useModal";
@@ -30,8 +30,7 @@ export default function RestaurantsPage() {
   const deleteModalRef = useModalA11y(!!deleteConfirm, closeDelete);
 
   useEffect(() => {
-    fetch(apiUrl("/api/restaurants"))
-      .then((r) => r.json())
+    fetchApi("/api/restaurants")
       .then(setRestaurants)
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -56,13 +55,11 @@ export default function RestaurantsPage() {
     setSaving(true); setError(null);
     try {
       const method = editTarget ? "PATCH" : "POST";
-      const url = editTarget ? apiUrl(`/api/restaurants/${editTarget.id}`) : apiUrl("/api/restaurants");
-      const res = await fetch(url, {
+      const path = editTarget ? `/api/restaurants/${editTarget.id}` : "/api/restaurants";
+      const saved = await fetchApi(path, {
         method, headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, next_inspection_date: form.next_inspection_date || null }),
       });
-      if (!res.ok) throw new Error("Failed to save");
-      const saved = await res.json();
       if (editTarget) {
         setRestaurants((prev) => prev.map((r) => r.id === saved.id ? saved : r));
         toast("Restaurant updated successfully");
@@ -79,8 +76,7 @@ export default function RestaurantsPage() {
     if (!deleteConfirm) return;
     setDeleting(true);
     try {
-      const res = await fetch(apiUrl(`/api/restaurants/${deleteConfirm.id}`), { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete");
+      await fetchApi(`/api/restaurants/${deleteConfirm.id}`, { method: "DELETE" });
       setRestaurants((prev) => prev.filter((r) => r.id !== deleteConfirm.id));
       setDeleteConfirm(null);
       toast("Restaurant deleted");

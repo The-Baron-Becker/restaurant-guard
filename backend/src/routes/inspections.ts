@@ -1,7 +1,21 @@
 import { Router } from 'express';
 import pool from '../db';
+import { validate } from '../validate';
 
 const router = Router();
+
+const createInspectionValidation = validate({
+  restaurant_id: { required: true, type: 'number' },
+  scheduled_date: { required: true, type: 'date' },
+  inspector_name: { type: 'string', maxLength: 200 },
+  inspection_type: { type: 'string', oneOf: ['Routine', 'Follow-Up', 'Complaint', 'Pre-Opening', 'HACCP'] },
+});
+
+const completeInspectionValidation = validate({
+  status: { type: 'string', oneOf: ['Scheduled', 'Completed', 'Cancelled'] },
+  score: { type: 'number', min: 0, max: 100 },
+  notes: { type: 'string', maxLength: 2000 },
+});
 
 router.get('/', async (req, res) => {
   try {
@@ -43,7 +57,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', createInspectionValidation, async (req, res) => {
   try {
     const { restaurant_id, checklist_id, inspector_name, inspection_type, scheduled_date } = req.body;
     const result = await pool.query(
@@ -58,7 +72,7 @@ router.post('/', async (req, res) => {
 });
 
 // Complete or update an inspection (mark as Completed with score + notes)
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', completeInspectionValidation, async (req, res) => {
   try {
     const { status, score, notes } = req.body;
     const fields: string[] = [];
