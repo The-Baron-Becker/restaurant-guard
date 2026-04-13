@@ -44,7 +44,24 @@ function InspectionsPageInner() {
   const [search, setSearch] = useState(searchParams.get("q") || "");
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "All");
   const [currentPage, setCurrentPage] = useState(Number(searchParams.get("page")) || 1);
+  const [sortCol, setSortCol] = useState<string>("scheduled_date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const PAGE_SIZE = 10;
+
+  const handleSort = (col: string) => {
+    if (sortCol === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortCol(col);
+      setSortDir("asc");
+    }
+    setCurrentPage(1);
+  };
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortCol !== col) return <span className="text-gray-300 ml-1">↕</span>;
+    return <span className="text-emerald-600 ml-1">{sortDir === "asc" ? "↑" : "↓"}</span>;
+  };
   const { toast } = useToast();
 
   // Sync filters to URL query params
@@ -173,15 +190,33 @@ function InspectionsPageInner() {
     URL.revokeObjectURL(url);
   };
 
-  const filtered = inspections.filter((insp) => {
-    const matchSearch =
-      !search ||
-      insp.restaurant_name?.toLowerCase().includes(search.toLowerCase()) ||
-      insp.inspector_name?.toLowerCase().includes(search.toLowerCase()) ||
-      insp.inspection_type?.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === "All" || insp.status === statusFilter;
-    return matchSearch && matchStatus;
-  });
+  const filtered = inspections
+    .filter((insp) => {
+      const matchSearch =
+        !search ||
+        insp.restaurant_name?.toLowerCase().includes(search.toLowerCase()) ||
+        insp.inspector_name?.toLowerCase().includes(search.toLowerCase()) ||
+        insp.inspection_type?.toLowerCase().includes(search.toLowerCase());
+      const matchStatus = statusFilter === "All" || insp.status === statusFilter;
+      return matchSearch && matchStatus;
+    })
+    .sort((a, b) => {
+      let aVal: any, bVal: any;
+      switch (sortCol) {
+        case "restaurant_name": aVal = a.restaurant_name || ""; bVal = b.restaurant_name || ""; break;
+        case "inspection_type": aVal = a.inspection_type || ""; bVal = b.inspection_type || ""; break;
+        case "scheduled_date":  aVal = a.scheduled_date ? new Date(a.scheduled_date).getTime() : 0; bVal = b.scheduled_date ? new Date(b.scheduled_date).getTime() : 0; break;
+        case "inspector_name":  aVal = a.inspector_name || ""; bVal = b.inspector_name || ""; break;
+        case "status":          aVal = a.status || ""; bVal = b.status || ""; break;
+        case "score":           aVal = a.score ?? -1; bVal = b.score ?? -1; break;
+        default: aVal = ""; bVal = "";
+      }
+      if (typeof aVal === "string") {
+        const cmp = aVal.localeCompare(bVal);
+        return sortDir === "asc" ? cmp : -cmp;
+      }
+      return sortDir === "asc" ? aVal - bVal : bVal - aVal;
+    });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
@@ -257,12 +292,22 @@ function InspectionsPageInner() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Restaurant</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Inspector</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
+              {[
+                { col: "restaurant_name", label: "Restaurant" },
+                { col: "inspection_type", label: "Type" },
+                { col: "scheduled_date", label: "Date" },
+                { col: "inspector_name", label: "Inspector" },
+                { col: "status", label: "Status" },
+                { col: "score", label: "Score" },
+              ].map(({ col, label }) => (
+                <th
+                  key={col}
+                  onClick={() => handleSort(col)}
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer select-none hover:text-gray-800 hover:bg-gray-100 transition"
+                >
+                  {label}<SortIcon col={col} />
+                </th>
+              ))}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
             </tr>
           </thead>

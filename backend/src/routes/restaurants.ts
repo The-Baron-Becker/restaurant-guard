@@ -18,7 +18,17 @@ const restaurantValidation = validate({
 
 router.get('/', async (_req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM restaurants ORDER BY name');
+    const result = await pool.query(`
+      SELECT r.*,
+        (SELECT i.score FROM inspections i
+         WHERE i.restaurant_id = r.id AND i.status = 'Completed' AND i.score IS NOT NULL
+         ORDER BY i.completed_date DESC LIMIT 1) AS latest_score,
+        (SELECT i.completed_date FROM inspections i
+         WHERE i.restaurant_id = r.id AND i.status = 'Completed' AND i.score IS NOT NULL
+         ORDER BY i.completed_date DESC LIMIT 1) AS latest_inspection_date
+      FROM restaurants r
+      ORDER BY r.name
+    `);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch restaurants' });

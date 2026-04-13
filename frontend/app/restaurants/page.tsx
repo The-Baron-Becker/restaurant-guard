@@ -167,15 +167,27 @@ export default function RestaurantsPage() {
                   <p className="text-sm text-gray-500 mb-1">{r.address}</p>
                   <p className="text-sm text-gray-500 mb-3">{r.city}, {r.state} {r.zip}</p>
                   {r.phone && <p className="text-sm text-gray-600 mb-3">{r.phone}</p>}
-                  {daysUntil !== null && (
-                    <div className={`text-xs font-semibold px-3 py-1.5 rounded-lg text-center ${
-                      daysUntil <= 7 ? "bg-red-50 text-red-700 border border-red-200"
-                      : daysUntil <= 21 ? "bg-yellow-50 text-yellow-700 border border-yellow-200"
-                      : "bg-blue-50 text-blue-700 border border-blue-200"
-                    }`}>
-                      Next Inspection: {new Date(r.next_inspection_date).toLocaleDateString()} ({daysUntil}d)
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {r.latest_score != null && (
+                      <div className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg ${
+                        r.latest_score >= 90 ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        : r.latest_score >= 80 ? "bg-yellow-50 text-yellow-700 border border-yellow-200"
+                        : "bg-red-50 text-red-700 border border-red-200"
+                      }`}>
+                        <span>{r.latest_score >= 90 ? "✅" : r.latest_score >= 80 ? "⚠️" : "❌"}</span>
+                        <span>Last Score: {r.latest_score}</span>
+                      </div>
+                    )}
+                    {daysUntil !== null && (
+                      <div className={`flex-1 text-xs font-semibold px-3 py-1.5 rounded-lg text-center ${
+                        daysUntil <= 7 ? "bg-red-50 text-red-700 border border-red-200"
+                        : daysUntil <= 21 ? "bg-yellow-50 text-yellow-700 border border-yellow-200"
+                        : "bg-blue-50 text-blue-700 border border-blue-200"
+                      }`}>
+                        Next: {new Date(r.next_inspection_date).toLocaleDateString()} ({daysUntil}d)
+                      </div>
+                    )}
+                  </div>
                 </a>
                 <div className="flex border-t border-gray-100">
                   <button onClick={() => openEdit(r)}
