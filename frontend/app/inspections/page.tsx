@@ -337,7 +337,11 @@ function InspectionsPageInner() {
             ) : (
               paginated.map((insp: any) => (
                 <tr key={insp.id} className="hover:bg-gray-50 transition">
-                  <td className="px-6 py-4 font-medium text-gray-900">{insp.restaurant_name}</td>
+                  <td className="px-6 py-4 font-medium text-gray-900">
+                    <a href={`/inspections/${insp.id}`} className="hover:text-emerald-700 hover:underline">
+                      {insp.restaurant_name}
+                    </a>
+                  </td>
                   <td className="px-6 py-4 text-sm text-gray-600">{insp.inspection_type}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">
                     {new Date(insp.scheduled_date).toLocaleDateString()}
@@ -358,14 +362,22 @@ function InspectionsPageInner() {
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    {insp.status === "Scheduled" && (
-                      <button
-                        onClick={() => { setCompleteTarget(insp); setCompleteForm(EMPTY_COMPLETE); setCompleteError(null); }}
-                        className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition"
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`/inspections/${insp.id}`}
+                        className="text-xs font-semibold text-gray-700 bg-white border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition"
                       >
-                        Complete
-                      </button>
-                    )}
+                        View
+                      </a>
+                      {insp.status === "Scheduled" && (
+                        <button
+                          onClick={() => { setCompleteTarget(insp); setCompleteForm(EMPTY_COMPLETE); setCompleteError(null); }}
+                          className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition"
+                        >
+                          Complete
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))

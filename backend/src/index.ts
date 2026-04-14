@@ -7,9 +7,25 @@ import inspectionsRouter from './routes/inspections';
 import correctiveActionsRouter from './routes/correctiveActions';
 import alertsRouter from './routes/alerts';
 import dashboardRouter from './routes/dashboard';
+import reportsRouter from './routes/reports';
+import { requestId, accessLog, errorHandler, logger } from './logger';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+
+// Request ID + structured access log must run before anything that could error,
+// so every entry in the logs is correlatable by requestId.
+app.use(requestId);
+app.use(accessLog);
+
+// Expose request ID through CORS so the browser can read it and surface it
+// in error toasts / support tickets.
+app.use(
+  cors({
+    exposedHeaders: ['X-Request-Id'],
+  })
+);
+app.use(express.json());
 
 // Rate limiting — 300 requests per minute per IP for general API
 const apiLimiter = rateLimit({
@@ -29,8 +45,6 @@ const writeLimiter = rateLimit({
   message: { error: 'Too many write requests, please slow down.' },
 });
 
-app.use(cors());
-app.use(express.json());
 app.use('/api', apiLimiter);
 
 // Health check
@@ -45,7 +59,12 @@ app.use('/api/inspections', writeLimiter, inspectionsRouter);
 app.use('/api/corrective-actions', writeLimiter, correctiveActionsRouter);
 app.use('/api/alerts', writeLimiter, alertsRouter);
 app.use('/api/dashboard', dashboardRouter);
+app.use('/api/reports', reportsRouter);
+
+// Last-resort error handler — keeps stack traces out of responses, logs them
+// with request ID so support can trace a reported failure.
+app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`RestaurantGuard API running on port ${PORT}`);
+  logger.info({ msg: 'restaurant-guard-api listening', port: PORT });
 });

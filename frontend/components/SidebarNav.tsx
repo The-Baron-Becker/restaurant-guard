@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/checklists", label: "Checklists", icon: "✅" },
   { href: "/corrective-actions", label: "Corrective Actions", icon: "⚠️" },
   { href: "/alerts", label: "Alerts", icon: "🔔", badgeKey: "alerts" },
+  { href: "/reports", label: "Reports", icon: "📈" },
 ];
 export default function SidebarNav({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
