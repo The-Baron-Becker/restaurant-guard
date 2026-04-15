@@ -3,10 +3,33 @@ import pool from '../db';
 
 const router = Router();
 
+// Supported time ranges. Values are Postgres interval strings. "all" skips
+// the completed-date filter entirely so historical data is included.
+const RANGE_INTERVALS: Record<string, string | null> = {
+  '7d': '7 days',
+  '30d': '30 days',
+  '90d': '90 days',
+  all: null,
+};
+
 // Aggregated analytics endpoint. One round-trip so the Reports page doesn't
 // fire five separate requests on load.
-router.get('/summary', async (_req, res) => {
+router.get('/summary', async (req, res) => {
   try {
+    const rawRange = typeof req.query.range === 'string' ? req.query.range : '30d';
+    const range = rawRange in RANGE_INTERVALS ? rawRange : '30d';
+    const interval = RANGE_INTERVALS[range];
+
+    // When a range is specified we narrow to inspections completed within that window.
+    // Corrective-action severity + restaurant counts stay global — they reflect
+    // current open workload which is not time-bounded.
+    const dateClause = interval
+      ? `AND completed_date >= (CURRENT_DATE - INTERVAL '${interval}')`
+      : '';
+    const dateClauseI = interval
+      ? `AND i.completed_date >= (CURRENT_DATE - INTERVAL '${interval}')`
+      : '';
+
     const [
       passRate,
       byType,
@@ -23,6 +46,7 @@ router.get('/summary', async (_req, res) => {
           COUNT(*) FILTER (WHERE score < 80)::int AS failed
         FROM inspections
         WHERE status = 'Completed' AND score IS NOT NULL
+        ${dateClause}
       `),
       // Avg score by restaurant type
       pool.query(`
@@ -32,6 +56,7 @@ router.get('/summary', async (_req, res) => {
         FROM restaurants r
         LEFT JOIN inspections i ON i.restaurant_id = r.id
           AND i.status = 'Completed' AND i.score IS NOT NULL
+          ${dateClauseI}
         GROUP BY r.type
         ORDER BY avg_score DESC NULLS LAST
       `),
@@ -73,6 +98,7 @@ router.get('/summary', async (_req, res) => {
                ROUND(AVG(score))::int AS avg_score
         FROM inspections
         WHERE status = 'Completed' AND score IS NOT NULL
+        ${dateClause}
         GROUP BY COALESCE(inspector_name, 'Unassigned')
         ORDER BY inspection_count DESC
         LIMIT 10
@@ -96,6 +122,7 @@ router.get('/summary', async (_req, res) => {
       : 0;
 
     res.json({
+      range,
       pass_rate: {
         total: passRow.total,
         passed: passRow.passed,

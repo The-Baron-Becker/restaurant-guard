@@ -1,9 +1,17 @@
 "use client";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { fetchApi } from "@/lib/api";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import RefreshBar from "@/components/RefreshBar";
 import { DashboardSkeleton } from "@/components/Skeleton";
+
+type RangeKey = "7d" | "30d" | "90d" | "all";
+const RANGES: { key: RangeKey; label: string; hint: string }[] = [
+  { key: "7d", label: "7d", hint: "Past 7 days" },
+  { key: "30d", label: "30d", hint: "Past 30 days" },
+  { key: "90d", label: "90d", hint: "Past 90 days" },
+  { key: "all", label: "All", hint: "All time" },
+];
 import {
   ResponsiveContainer,
   BarChart,
@@ -51,14 +59,16 @@ const scoreColor = (score: number | null) => {
 };
 
 export default function ReportsPage() {
+  const [range, setRange] = useState<RangeKey>("30d");
   const fetcher = useCallback(
-    () => fetchApi<ReportsSummary>("/api/reports/summary"),
-    []
+    () => fetchApi<ReportsSummary>(`/api/reports/summary?range=${range}`),
+    [range]
   );
   const { data, loading, lastUpdated, refresh, refreshing } = useAutoRefresh(
     fetcher,
     { interval: 120_000 }
   );
+  const activeRange = RANGES.find((r) => r.key === range) ?? RANGES[1];
 
   if (loading) return <DashboardSkeleton />;
   if (!data) {
@@ -94,14 +104,42 @@ export default function ReportsPage() {
 
   return (
     <div>
-      <div className="mb-8 flex items-start justify-between gap-4">
+      <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Reports &amp; Analytics</h1>
           <p className="text-gray-500 mt-1">
             Portfolio-level view of compliance, risk, and inspection throughput.
+            <span className="text-gray-400"> · Window: {activeRange.hint}</span>
           </p>
         </div>
         <RefreshBar lastUpdated={lastUpdated} onRefresh={refresh} refreshing={refreshing} />
+      </div>
+
+      {/* Time-range filter */}
+      <div
+        role="tablist"
+        aria-label="Time range"
+        className="inline-flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1 mb-6 shadow-sm"
+      >
+        {RANGES.map((r) => {
+          const isActive = r.key === range;
+          return (
+            <button
+              key={r.key}
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setRange(r.key)}
+              title={r.hint}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-md transition ${
+                isActive
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              }`}
+            >
+              {r.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Headline KPIs */}
