@@ -46,6 +46,43 @@ router.get('/stats', async (_req, res) => {
   }
 });
 
+// Restaurants with the highest compliance risk right now. Ranks by open
+// high-severity corrective actions first, then by the count of all open
+// actions, tie-breaking on the most recent inspection score. This is what
+// a portfolio operator wants on page load — "who do I call today?".
+router.get('/high-risk-restaurants', async (_req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT
+         r.id,
+         r.name,
+         r.type,
+         r.city,
+         r.state,
+         COUNT(ca.id) FILTER (WHERE ca.status = 'Open' AND ca.severity IN ('Critical','High'))::int AS open_high_severity,
+         COUNT(ca.id) FILTER (WHERE ca.status = 'Open')::int                                        AS open_total,
+         (SELECT score
+            FROM inspections
+           WHERE restaurant_id = r.id
+             AND status = 'Completed'
+             AND score IS NOT NULL
+           ORDER BY completed_date DESC
+           LIMIT 1)                                                                                  AS latest_score
+       FROM restaurants r
+       LEFT JOIN inspections i        ON i.restaurant_id  = r.id
+       LEFT JOIN corrective_actions ca ON ca.inspection_id = i.id
+       GROUP BY r.id
+       HAVING COUNT(ca.id) FILTER (WHERE ca.status = 'Open') > 0
+       ORDER BY open_high_severity DESC, open_total DESC, latest_score ASC NULLS LAST
+       LIMIT 5`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch high-risk restaurants' });
+  }
+});
+
 router.get('/score-trend', async (_req, res) => {
   try {
     const result = await pool.query(

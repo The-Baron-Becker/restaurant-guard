@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { fetchApi } from "@/lib/api";
 import { DashboardSkeleton } from "@/components/Skeleton";
 import ScoreTrendChart from "@/components/ScoreTrendChart";
+import HighRiskRestaurants from "@/components/HighRiskRestaurants";
 import RefreshBar from "@/components/RefreshBar";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
@@ -122,6 +123,10 @@ export default function Dashboard() {
       </div>
 
       <ScoreTrendChart />
+
+      <div className="mb-8">
+        <HighRiskRestaurants />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
