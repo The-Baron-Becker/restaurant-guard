@@ -6,7 +6,10 @@ services:
       POSTGRES_USER: appuser
       POSTGRES_PASSWORD: apppassword
     ports:
-      - "5432:5432"
+      # Host port 5434 (host:container) — 5432 is taken by another Factory build's
+      # postgres on this workstation. Container-internal port stays 5432 so the
+      # backend's DATABASE_URL=postgresql://...@db:5432/... is unchanged.
+      - "5434:5432"
     volumes:
       - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
       - ./db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
